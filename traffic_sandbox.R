@@ -12,7 +12,6 @@ traffic <- melt(traffic, value.name = "volume", id = melt_cols)
 # join on zipcode and time
 
 # get street mapping attributes from https://jcoliver.github.io/learn-r/017-open-street-map.html
-# get county mapping with 
 
 # this might help https://locatenyc.io/detail-intersection
 

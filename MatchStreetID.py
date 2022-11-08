@@ -5,46 +5,79 @@ Created on Tue Nov  1 18:31:53 2022
 @author: Andy
 """
 
-import numpy as np
+import numpy as np 
+import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
+import datetime
 
 
-def in_polygon(point1, point2, lat1, long1, lat2, long2, lat3, long3, lat4, long4):
-    return Polygon([(lat1, long1),(lat2, long2),(lat3, long3),(lat4, long4)]).contains(Point(point1, point2))
+class NYCCrashMatch:
+    def __init__(self, master, m_points: list = ['botleft_long', 'botleft_lat',
+                         'topleft_long', 'topleft_lat',
+                         'topright_long', 'topright_lat',
+                         'botright_long', 'botright_lat']):
     
-in_polygon = np.vectorize(in_polygon)
+        master['geometry'] = list(zip(zip(master[m_points[0]], master[m_points[1]]),
+                             zip(master[m_points[2]], master[m_points[3]]),
+                             zip(master[m_points[4]], master[m_points[5]]),
+                             zip(master[m_points[6]], master[m_points[7]])))
+        master['geometry'] = master['geometry'].apply(Polygon)
+        master = gpd.GeoDataFrame(master, geometry='geometry')
+        
+        self.master = master
+        self.m_points = m_points
+    
+    def ll_match(self, new, new_long: str, new_lat: str):
+        """
+        Matches to master street segments. m_points is list in form:
+        [bottom left long, bottom left lat, top left long, top left lat, top right long,
+        top right lat, bottom right long, bottom right lat]
+        may need to handle duplicate matches
+        returns new df with segmentID matched
+        """
+        new = new.dropna(subset = [new_long, new_lat])
+        new['coords'] = list(zip(new[new_long],new[new_lat]))
+        new['coords'] = new['coords'].apply(Point)
 
-def get_index(lst, val):
-    try:
-        return lst.index(val)
-    except:
-        return -1
-
-def poly_match(point1, point2, lat1, long1, lat2, long2, lat3, long3, lat4, long4):
-    return get_index(list(in_polygon(point1, point2, lat1, long1, lat2, long2, lat3, long3, lat4, long4)), True)
-
-def street_match(master, master_ll_cols: list, new, new_ll_cols: list):    
-    new['streedID'] = new.apply(lambda x: poly_match(x[new_ll_cols[0]],x[new_ll_cols[1]],
-                                                     np.array(master[master_ll_cols[0]]), np.array(master[master_ll_cols[1]]), 
-                                                     np.array(master[master_ll_cols[2]]), np.array(master[master_ll_cols[3]]), 
-                                                     np.array(master[master_ll_cols[4]]), np.array(master[master_ll_cols[5]]), 
-                                                     np.array(master[master_ll_cols[6]]), np.array(master[master_ll_cols[7]])), 
-                                axis = 1)
-    return new
-
-
+        new = gpd.GeoDataFrame(new, geometry='coords')
+        
+        print('Starting join: ', datetime.datetime.now())
+        matches = gpd.tools.sjoin(new, self.master, predicate="within", how='left')
+        print('Finished join: ', datetime.datetime.now())
+        return matches
+    
+    def geom_match(self, new, new_geom: str, dim = 'point'):
+        """
+        Matches point to master areas if new is already an shp file
+        """
+        return gpd.tools.sjoin(new, self.master, predicate="within", how='left') \
+            if dim == 'point' else gpd.tools.sjoin(new, self.master, how='left')
+    
 if __name__ == "__main__":
-    mm = pd.DataFrame({'lat1': np.zeros(100),
-                   'long1': np.zeros(100),
-                   'lat2': np.zeros(100),
-                   'long2': np.ones(100),
-                   'lat3': np.ones(100),
-                   'long3': np.ones(100),
-                   'lat4': np.ones(100),
-                   'long4': np.zeros(100)})
-
-    df = pd.DataFrame({'lat': [0.5, 1], 'long':[0.5,1]})
-    street_match(mm, ['lat1', 'long1', 'lat2', 'long2', 'lat3', 'long3', 'lat4', 'long4'], df, ['lat', 'long'])
-
+    m = pd.read_csv('ll_master.tsv', sep = "\t")
+    m = NYCCrashMatch(m)
+    collisions = pd.read_csv('Motor_Vehicle_Collisions_Crashes.csv')
+    collisions_matched = m.ll_match(collisions, 'LONGITUDE', 'LATITUDE')
+    collisions_matched.to_csv('collisions_matched.tsv', sep = "\t", index = False)
+    
+    speed_bumps = gpd.GeoDataFrame.from_file('geo_export_fa9d6a08-ceec-4cad-8539-7daacde49a0f.shp')
+    speed_bumps['geometry'] = speed_bumps['geometry'].boundary
+    speed_bumps_matched = m.geom_match(speed_bumps, 'geometry', dim = 'line')
+    speed_bumps_matched.to_csv('speed_bumps_matched.csv', index = False)
+    
+    bike_lanes = gpd.GeoDataFrame.from_file('geo_export_d20fdaf8-b759-4bf8-9d53-7ec065a05922.shp')
+    bike_lanes['geometry'] = bike_lanes['geometry'].boundary
+    bike_lanes_matched = m.geom_match(bike_lanes, 'geometry', dim = 'line')
+    bike_lanes_matched.to_csv('bike_lanes_matched.csv', index = False)
+    
+    speed_limits = gpd.GeoDataFrame.from_file('geo_export_3cf3daf0-3915-4815-99d6-3097f0d3e8f8.shp')
+    speed_limits['geometry'] = speed_limits['geometry'].boundary
+    speed_limits_matched = m.geom_match(speed_limits, 'geometry', dim = 'line')
+    speed_limits_matched.to_csv('speed_limits_matched.csv', index = False)
+    
+    traffic = pd.read_csv('Traffic_Volume_Counts.csv')
+    traffic_matched = pd.merge(traffic, m.master, left_on = ['Roadway Name', 'From', 'To'],
+                               right_on = ['Roadway.Name', 'From', 'To'], how = 'left')
+    traffic_matched.to_csv('traffic_matched.csv', index = False)

@@ -10,7 +10,8 @@ import requests
 import pandas as pd
 import numpy as np
 from time import sleep
-
+from shapely.geometry import Point, LineString, Polygon
+import shapely
 
 class NYCCollisions:    
     def zip_lat_long(self, segments, street, c1, c2):
@@ -49,7 +50,7 @@ class NYCCollisions:
             print(df['id'][i], df[street][i])
         return df
     
-    def boundaries_from_ll(self, zip_ll, alpha):
+    def boundaries_from_ll(self, zip_ll):
         df = zip_ll.copy()
         # make the actual lat and long columns
         df[['lat1', 'long1']] = df['ll1'].str.split(',', expand=True)
@@ -58,17 +59,9 @@ class NYCCollisions:
         df[['lat2', 'long2']] = df['ll2'].str.split(',', expand=True)
         df['lat2'] = pd.to_numeric(df['lat2'], errors = 'coerce')
         df['long2'] = pd.to_numeric(df['long2'], errors = 'coerce')
-        
-        df['top_lat'] = np.where(df['lat1'] > df['lat2'], df['lat1'], df['lat2'])
-        df['right_long'] = np.where(df['long1'] > df['long2'], df['long1'], df['long2'])
-        df['bot_lat'] = np.where(df['lat1'] < df['lat2'], df['lat1'], df['lat2'])
-        df['left_long'] = np.where(df['long1'] < df['long2'], df['long1'], df['long2'])
-        
-        for ik, iv in {'bot':-1, 'top':1}.items():
-            for xk, xv in {'right':1, 'left':-1}.items():
-                df[f"{ik}{xk}_lat"] = df[f"{ik}_lat"] + alpha*(iv)
-                df[f"{ik}{xk}_long"] = df[f"{xk}_long"] + alpha*(xv)
-                
+        df['geometry'] = list(zip(zip(df['long1'],df['lat1']), zip(df['long2'],df['lat2'])))
+        df['geometry'] = df['geometry'].apply(LineString)
+        df['geometry'] = df['geometry'].apply(lambda x: LineString.buffer(x, 0.00013))
         return df
 
 
@@ -78,4 +71,3 @@ if __name__ == "__main__":
     zips = cons.zip_lat_long(segments, 'Roadway.Name', 'From', 'To') # need to repeat and concat, requests get denied
     zips = cons.boundaries_from_ll(zips, 0.00013)
     zips.to_csv('zip_ll_bound.tsv', sep = '\t', index = False)
-

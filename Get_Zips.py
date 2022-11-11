@@ -53,7 +53,11 @@ class NYCCollisions:
         df = zip_ll.copy()
         # make the actual lat and long columns
         df[['lat1', 'long1']] = df['ll1'].str.split(',', expand=True)
-        df[['lat2', 'long2']] = df['ll1'].str.split(',', expand=True)
+        df['lat1'] = pd.to_numeric(df['lat1'], errors = 'coerce')
+        df['long1'] = pd.to_numeric(df['long1'], errors = 'coerce')
+        df[['lat2', 'long2']] = df['ll2'].str.split(',', expand=True)
+        df['lat2'] = pd.to_numeric(df['lat2'], errors = 'coerce')
+        df['long2'] = pd.to_numeric(df['long2'], errors = 'coerce')
         
         df['top_lat'] = np.where(df['lat1'] > df['lat2'], df['lat1'], df['lat2'])
         df['right_long'] = np.where(df['long1'] > df['long2'], df['long1'], df['long2'])
@@ -74,3 +78,4 @@ if __name__ == "__main__":
     zips = cons.zip_lat_long(segments, 'Roadway.Name', 'From', 'To') # need to repeat and concat, requests get denied
     zips = cons.boundaries_from_ll(zips, 0.00013)
     zips.to_csv('zip_ll_bound.tsv', sep = '\t', index = False)
+

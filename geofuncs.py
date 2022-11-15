@@ -12,11 +12,13 @@ def to_geojson(data: pd.DataFrame, properties: str) -> geojson.GeoJSON:
 
     Returns: geojson.GeoJSON
     """
-    lat_long = data.apply(lambda row: geojson.Feature(geometry=geojson.Point((float(row['LATITUDE']), float(row['LONGITUDE'])))),
-                          axis=1).tolist()
-    properties = data.loc[:, [properties]].to_dict('records')
+    data = data.loc[:, ['LATITUDE', 'LONGITUDE', properties]]
+    data = data.dropna(how='any')
+    lat_long = data.apply(lambda row: geojson.Feature(geometry=geojson.Point((float(row['LATITUDE']), float(row['LONGITUDE']))),
+                                                      properties={properties: row[properties]}),
+                          axis=1)
     data_geo = geojson.FeatureCollection(
-        features=lat_long, properties=properties)
+        features=lat_long)
     return data_geo
 
 

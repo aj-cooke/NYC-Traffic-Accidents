@@ -2,7 +2,6 @@ import pandas as pd
 import geoplot as gplt
 import geopandas as gpd
 import geofuncs
-import matplotlib
 
 
 def rate(data: pd.DataFrame, column: str) -> pd.DataFrame:

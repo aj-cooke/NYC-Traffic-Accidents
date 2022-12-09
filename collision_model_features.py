@@ -8,7 +8,7 @@ class CollisionFeature:
         """
         Create freatures that will be used in building collision models
 
-        Parameter
+        Parameters
         -----------
         collisions: pd.DataFrame
         speed_bumps_matched: pd.DataFrame
@@ -20,6 +20,8 @@ class CollisionFeature:
         self.speed_limits = speed_limits_matched.loc[:, [
             'streetID', 'postvz_sl']]
         self.bike_lane = bike_lanes_matched.loc[:, ['streetID', 'lanecount']]
+        self.bike_lane = self.bike_lane.groupby(by=['streetID']).agg(
+            {'lanecount': 'first'}).reset_index()
 
         # below is to clean collisions table
         # filter out false LATITUDE and LONGITUDE
@@ -41,7 +43,7 @@ class CollisionFeature:
         """
         Add an indicator variable for whether the street has a speed bump on the collisions table. Inplace replace. The column name is speed_bumps.
 
-        Parameter
+        Parameters
         -----------
         None
 
@@ -65,7 +67,7 @@ class CollisionFeature:
         """
         Add an indicator variable for whether the street has a speed limit on the collisions table. Inplace replace. The column name is speed_limits.
 
-        Parameter
+        Parameters
         -----------
         None
 
@@ -87,7 +89,7 @@ class CollisionFeature:
         """
         Add an indicator variable for whether the street has a speed limit on the collisions table. Inplace replace. The column name is bike_lanes.
 
-        Parameter
+        Parameters
         -----------
         None
 
@@ -111,7 +113,7 @@ class TrafficFeature:
         """
         Create freatures that will be used in building collision models from the traffic table
 
-        Parameter
+        Parameters
         -----------
         traffic_matched: pd.DataFrame
         """
@@ -144,7 +146,7 @@ class TrafficFeature:
         """
         This function takes self.traffic and aggregates it by streetID and hour.
 
-        Parameter
+        Parameters
         -----------
         self.traffic_matched: pd.DataFrame
 
@@ -167,7 +169,7 @@ class TrafficFeature:
         """
         This function takes self.traffic and aggregates it by streetID and hour.
 
-        Parameter
+        Parameters
         -----------
         self.traffic_matched: pd.DataFrame
 
@@ -191,7 +193,7 @@ if __name__ == "__main__":
     path = '/Users/daixinming/Documents/Graduate_School/2022_Fall/Seminar/stat_project/matched_data/crash_matched_data'
 
     collisions = pd.read_csv(
-        path + '/collisions_matched.tsv', sep='\t', nrows=200)
+        path + '/collisions_matched.tsv', sep='\t')
     traffic_matched = pd.read_csv(
         path + '/traffic_matched.csv')
     speed_limits_matched = pd.read_csv(

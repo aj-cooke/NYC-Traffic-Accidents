@@ -215,6 +215,6 @@ if __name__ == "__main__":
     traffic_byhour = traffic_feature.traffic_byhour()
     traffic_bydayofweek = traffic_feature.traffic_bydayofweek()
 
-    feature.collisions.to_csv(path + "/new_collisions.csv")
-    traffic_byhour.to_csv(path + "/traffic_byhour.csv")
-    traffic_bydayofweek.to_csv(path + "/traffic_bydayofweek.csv")
+    # feature.collisions.to_csv(path + "/new_collisions.csv")
+    # traffic_byhour.to_csv(path + "/traffic_byhour.csv")
+    # traffic_bydayofweek.to_csv(path + "/traffic_bydayofweek.csv")

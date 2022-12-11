@@ -28,7 +28,7 @@ def rate(data: pd.DataFrame, column: str) -> pd.DataFrame:
     return rate
 
 
-def pointplot(data: pd.DataFrame, colname: str, title: str=None):
+def pointplot(data: pd.DataFrame, colname: str, title: str = None):
     """
     This function plots injury rate or fatality rate on a NYC map.
 
@@ -49,13 +49,13 @@ def pointplot(data: pd.DataFrame, colname: str, title: str=None):
     ax = gplt.polyplot(
         boroughs,
         projection=proj,
-        figsize=(10, 10))
+        figsize=(6, 6))
     gplt.pointplot(
         rate_geo,
         projection=proj,
         ax=ax,
         hue=colname,
-        cmap='Purples',
+        cmap='Greens',
         scheme='quantiles',
         scale=colname,
         legend=True,
